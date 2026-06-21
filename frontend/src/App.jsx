@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import HomePage from './pages/HomePage.jsx'
+import ToolPage from './pages/ToolPage.jsx'
 
 // Theme persistence
 function useTheme() {
@@ -24,9 +25,26 @@ export default function App() {
   const { theme, toggleTheme } = useTheme()
 
   return (
-    <Routes>
-      <Route path="/" element={<HomePage theme={theme} toggleTheme={toggleTheme} />} />
-      {/* Tool routes will be added in Phase 4+ */}
-    </Routes>
-  )
+  <Routes>
+    <Route
+      path="/"
+      element={
+        <HomePage
+          theme={theme}
+          toggleTheme={toggleTheme}
+        />
+      }
+    />
+
+    <Route
+      path="/tool/:slug"
+      element={
+        <ToolPage
+          theme={theme}
+          toggleTheme={toggleTheme}
+        />
+      }
+    />
+  </Routes>
+)
 }

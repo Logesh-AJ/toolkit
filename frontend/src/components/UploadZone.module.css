@@ -1,0 +1,101 @@
+.wrapper {
+    width: 100%;
+}
+
+.dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    padding: var(--space-12) var(--space-6);
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--bg-card);
+    cursor: pointer;
+    transition: border-color var(--transition-base), background var(--transition-base);
+    text-align: center;
+}
+
+.dropzone:hover {
+    border-color: var(--brand-primary);
+}
+
+.active {
+    border-color: var(--brand-primary);
+    background: var(--bg-card-hover);
+}
+
+.iconCircle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--brand-gradient);
+    color: #fff;
+}
+
+.primaryText {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.secondaryText {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.fileList {
+    margin-top: var(--space-4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    overflow: hidden;
+}
+
+.fileItem {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+}
+
+.fileName {
+    flex: 1;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fileSize {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.removeBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+.removeBtn:hover {
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--color-error);
+}

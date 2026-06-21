@@ -8,10 +8,14 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+
+from routers import pdf
 
 # ---------------------------------------------------------------------------
 # Directory Setup
@@ -45,14 +49,13 @@ async def cleanup_old_files():
                         try:
                             file_path.unlink()
                         except Exception:
-                            pass  # Ignore errors (file may already be deleted)
+                            pass
 
         await asyncio.sleep(300)  # Run every 5 minutes
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup and shutdown logic."""
     task = asyncio.create_task(cleanup_old_files())
     yield
     task.cancel()
@@ -82,6 +85,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://192.168.56.1:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -89,17 +93,19 @@ app.add_middleware(
 )
 
 # ---------------------------------------------------------------------------
-# Static file serving for output files
+# Static file serving for output files (downloads)
 # ---------------------------------------------------------------------------
 
 app.mount("/outputs", StaticFiles(directory=str(OUTPUT_DIR)), name="outputs")
 
 # ---------------------------------------------------------------------------
-# Routers (will be added in Phase 3+)
+# Routers
 # ---------------------------------------------------------------------------
 
-# from routers import pdf, image, video, audio, qr, archive
-# app.include_router(pdf.router, prefix="/api/pdf", tags=["PDF Tools"])
+app.include_router(pdf.router, prefix="/api/pdf", tags=["PDF Tools"])
+
+# Remaining routers are added as their phases are implemented:
+# from routers import image, video, audio, qr, archive
 # app.include_router(image.router, prefix="/api/image", tags=["Image Tools"])
 # app.include_router(video.router, prefix="/api/video", tags=["Video Tools"])
 # app.include_router(audio.router, prefix="/api/audio", tags=["Audio Tools"])
@@ -131,15 +137,28 @@ async def health_check():
 
 
 # ---------------------------------------------------------------------------
-# Global Exception Handler
+# Consistent Error Handlers
 # ---------------------------------------------------------------------------
 
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"success": False, "error": exc.detail},
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content={"success": False, "error": "Validation error", "detail": exc.errors()},
+    )
+
+
 @app.exception_handler(Exception)
-async def global_exception_handler(request, exc):
+async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=500,
-        content={
-            "error": "Internal server error",
-            "detail": str(exc),
-        },
+        content={"success": False, "error": "Internal server error", "detail": str(exc)},
     )

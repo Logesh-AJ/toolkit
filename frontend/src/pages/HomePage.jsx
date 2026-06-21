@@ -1,25 +1,26 @@
+import Navbar from '../components/Navbar.jsx'
+import Hero from '../components/Hero.jsx'
+import TrustSection from '../components/TrustSection.jsx'
+import ToolGrid from '../components/ToolGrid.jsx'
+import RecentTools from '../components/RecentTools.jsx'
+import FAQ from '../components/FAQ.jsx'
+import Footer from '../components/Footer.jsx'
+import { useRecentTools } from '../hooks/useRecentTools.js'
+
 export default function HomePage({ theme, toggleTheme }) {
+  const { recentSlugs } = useRecentTools()
+
   return (
-    <div style={{ padding: '40px', fontFamily: 'Inter, sans-serif', color: 'var(--text-primary)' }}>
-      <h1 style={{ fontSize: '2rem', marginBottom: '12px' }}>
-        ToolForge is loading...
-      </h1>
-      <p style={{ color: 'var(--text-secondary)' }}>
-        Phase 1 complete. Run <code>continue</code> to build the full UI.
-      </p>
-      <button
-        onClick={toggleTheme}
-        style={{
-          marginTop: '20px',
-          padding: '10px 20px',
-          background: 'var(--brand-primary)',
-          color: '#fff',
-          borderRadius: '8px',
-          fontSize: '14px',
-        }}
-      >
-        Toggle theme (current: {theme})
-      </button>
-    </div>
+    <>
+      <Navbar theme={theme} toggleTheme={toggleTheme} />
+      <main>
+        <Hero />
+        <TrustSection />
+        <RecentTools recentSlugs={recentSlugs} />
+        <ToolGrid />
+        <FAQ />
+      </main>
+      <Footer />
+    </>
   )
 }
