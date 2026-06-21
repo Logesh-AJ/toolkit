@@ -20,6 +20,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             borderRadius: '12px',
             fontSize: '14px',
             fontFamily: 'Inter, sans-serif',
+            boxShadow: 'var(--shadow-md)',
           },
           success: {
             iconTheme: { primary: '#10b981', secondary: '#fff' },

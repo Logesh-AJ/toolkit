@@ -19,20 +19,16 @@
     flex-shrink: 0;
 }
 
-.uploading .icon,
-.processing .icon {
-    background: rgba(99, 102, 241, 0.12);
-    color: var(--brand-primary);
-}
-
 .success .icon {
-    background: rgba(16, 185, 129, 0.12);
+    background: rgba(16, 185, 129, 0.14);
     color: var(--color-success);
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.08);
 }
 
 .error .icon {
-    background: rgba(239, 68, 68, 0.12);
+    background: rgba(239, 68, 68, 0.14);
     color: var(--color-error);
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.08);
 }
 
 .text {
@@ -57,11 +53,14 @@
     font-weight: 600;
     font-size: 0.85rem;
     flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .downloadBtn:hover {
     color: #fff;
-    opacity: 0.92;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
 }
 
 .resetBtn {
@@ -73,6 +72,7 @@
     font-size: 0.85rem;
     font-weight: 500;
     flex-shrink: 0;
+    transition: all var(--transition-fast);
 }
 
 .resetBtn:hover {

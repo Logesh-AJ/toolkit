@@ -11,9 +11,6 @@ import { getToolEndpoint } from '../services/toolEndpoints.js'
 import { useRecentTools } from '../hooks/useRecentTools.js'
 import styles from './ToolPageLayout.module.css'
 
-// Maps a file extension to a MIME type react-dropzone understands.
-// Falls back to '*' (any) for formats we don't need to strictly gate client-side —
-// the backend always re-validates regardless.
 const EXTENSION_MIME_MAP = {
   '.pdf': 'application/pdf',
   '.doc': 'application/msword',
@@ -46,15 +43,6 @@ function buildAcceptMap(formats) {
   return Object.keys(acceptMap).length ? acceptMap : undefined
 }
 
-/**
- * Generic tool page shell.
- *
- * @param {object} tool - entry from data/tools.js
- * @param {string} theme / {function} toggleTheme - lifted theme state
- * @param {object} extraFields - optional extra form fields to send (e.g. { quality: 80 })
- * @param {React.ReactNode} extraControls - optional custom inputs rendered above the upload zone
- * @param {object} acceptOverride - optional react-dropzone `accept` object override
- */
 export default function ToolPageLayout({
   tool,
   theme,
@@ -64,7 +52,7 @@ export default function ToolPageLayout({
   acceptOverride = null,
 }) {
   const [files, setFiles] = useState([])
-  const [status, setStatus] = useState('idle') // idle | uploading | processing | success | error
+  const [status, setStatus] = useState('idle')
   const [progress, setProgress] = useState(0)
   const [message, setMessage] = useState('')
   const [downloadUrl, setDownloadUrl] = useState(null)
@@ -133,13 +121,20 @@ export default function ToolPageLayout({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <div className={styles.iconWrap}><Icon size={26} /></div>
+            <motion.div
+              className={styles.iconWrap}
+              initial={{ scale: 0.6, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 18, delay: 0.1 }}
+            >
+              <Icon size={26} />
+            </motion.div>
             <h1 className={styles.title}>{tool.name}</h1>
             <p className={styles.desc}>{tool.desc}</p>
             <span className={styles.formats}>Supports: {tool.formats.join(', ')}</span>
           </motion.div>
 
-          <div className={styles.panel}>
+          <div className={`${styles.panel} glass-surface`}>
             {extraControls}
 
             <UploadZone

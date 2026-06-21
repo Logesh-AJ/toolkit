@@ -62,6 +62,7 @@ export default function Hero() {
       </div>
 
       <div className={styles.glow} aria-hidden="true" />
+      <div className={styles.glowSecondary} aria-hidden="true" />
     </section>
   )
 }

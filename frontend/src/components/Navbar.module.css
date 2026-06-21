@@ -2,10 +2,17 @@
     position: sticky;
     top: 0;
     z-index: 100;
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background: transparent;
+    border-bottom: 1px solid transparent;
+    transition: background var(--transition-base), border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.scrolled {
     background: var(--bg-glass);
+    backdrop-filter: var(--blur-nav) saturate(180%);
+    -webkit-backdrop-filter: var(--blur-nav) saturate(180%);
     border-bottom: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
 }
 
 .inner {
@@ -36,6 +43,7 @@
     background: var(--brand-gradient);
     color: #fff;
     flex-shrink: 0;
+    box-shadow: 0 2px 12px rgba(99, 102, 241, 0.35);
 }
 
 .logoText {
@@ -52,13 +60,31 @@
 }
 
 .link {
+    position: relative;
     font-size: 0.9rem;
     font-weight: 500;
     color: var(--text-secondary);
+    padding: 4px 0;
+}
+
+.link::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -2px;
+    width: 0;
+    height: 2px;
+    background: var(--brand-gradient);
+    border-radius: 2px;
+    transition: width var(--transition-base);
 }
 
 .link:hover {
     color: var(--text-primary);
+}
+
+.link:hover::after {
+    width: 100%;
 }
 
 .actions {
@@ -67,7 +93,8 @@
     gap: var(--space-3);
 }
 
-.themeToggle {
+.themeToggle,
+.menuToggle {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -80,13 +107,22 @@
     transition: all var(--transition-fast);
 }
 
-.themeToggle:hover {
+.themeToggle:hover,
+.menuToggle:hover {
     color: var(--brand-primary);
     border-color: var(--brand-primary);
+}
+
+.menuToggle {
+    display: none;
 }
 
 @media (max-width: 768px) {
     .links {
         display: none;
+    }
+
+    .menuToggle {
+        display: flex;
     }
 }

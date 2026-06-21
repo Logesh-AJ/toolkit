@@ -25,7 +25,13 @@ export default function TrustSection() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.35, delay: i * 0.06 }}
               >
-                <div className={styles.iconWrap}><Icon size={20} /></div>
+                <motion.div
+                  className={styles.iconWrap}
+                  whileHover={{ scale: 1.1, y: -2 }}
+                  transition={{ type: 'spring', stiffness: 400, damping: 14 }}
+                >
+                  <Icon size={20} />
+                </motion.div>
                 <h3>{point.title}</h3>
                 <p>{point.desc}</p>
               </motion.div>

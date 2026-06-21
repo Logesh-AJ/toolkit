@@ -14,12 +14,17 @@ export default function ToolCard({ tool, index = 0 }) {
     >
       <Link to={`/tool/${tool.slug}`} className={styles.card}>
         {tool.popular && <span className={styles.badge}>Popular</span>}
-        <div className={styles.iconWrap}>
+        <motion.div
+          className={styles.iconWrap}
+          whileHover={{ scale: 1.08, rotate: -4 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 12 }}
+        >
           <Icon size={22} />
-        </div>
+        </motion.div>
         <h3 className={styles.name}>{tool.name}</h3>
         <p className={styles.desc}>{tool.desc}</p>
         <span className={styles.formats}>{tool.formats.join(' · ')}</span>
+        <span className={styles.cardGlow} aria-hidden="true" />
       </Link>
     </motion.div>
   )

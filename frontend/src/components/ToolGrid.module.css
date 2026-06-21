@@ -48,6 +48,7 @@
     background: var(--brand-gradient);
     border-color: transparent;
     color: #fff;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
 }
 
 .tabActive:hover {
@@ -58,6 +59,16 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: var(--space-5);
+}
+
+@media (min-width: 1400px) {
+    .grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+
+    .section .container {
+        max-width: 1480px;
+    }
 }
 
 @media (max-width: 1024px) {
@@ -75,5 +86,17 @@
 @media (max-width: 480px) {
     .grid {
         grid-template-columns: 1fr;
+    }
+
+    .tabs {
+        justify-content: flex-start;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 4px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .tab {
+        flex-shrink: 0;
     }
 }

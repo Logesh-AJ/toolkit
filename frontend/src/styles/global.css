@@ -1,5 +1,5 @@
 /* ============================================================
-   ToolForge — Global Design System
+   ToolForge — Global Design System (v2: Glassmorphism Pass)
    ============================================================ */
 
 :root {
@@ -8,13 +8,15 @@
     --brand-secondary: #8b5cf6;
     --brand-accent: #06b6d4;
     --brand-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
+    --brand-gradient-soft: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 50%, rgba(6, 182, 212, 0.15) 100%);
 
     /* Light mode surfaces */
     --bg-base: #f8f8fc;
     --bg-card: #ffffff;
     --bg-card-hover: #f5f5ff;
     --bg-subtle: #f0f0fa;
-    --bg-glass: rgba(255, 255, 255, 0.7);
+    --bg-glass: rgba(255, 255, 255, 0.72);
+    --bg-glass-strong: rgba(255, 255, 255, 0.88);
 
     /* Text */
     --text-primary: #0f0f1a;
@@ -24,6 +26,7 @@
 
     /* Borders */
     --border: #e2e2f0;
+    --border-glow: rgba(99, 102, 241, 0.35);
     --border-focus: #6366f1;
 
     /* Shadows */
@@ -31,6 +34,12 @@
     --shadow-md: 0 4px 20px rgba(99, 102, 241, 0.12);
     --shadow-lg: 0 8px 40px rgba(99, 102, 241, 0.16);
     --shadow-glow: 0 0 30px rgba(99, 102, 241, 0.25);
+    --shadow-card-rest: 0 1px 2px rgba(15, 15, 26, 0.04), 0 1px 1px rgba(15, 15, 26, 0.03);
+    --shadow-card-hover: 0 20px 40px -12px rgba(99, 102, 241, 0.25), 0 0 0 1px rgba(99, 102, 241, 0.08);
+
+    /* Blur — capped intentionally; see design rationale in PR notes */
+    --blur-panel: blur(12px);
+    --blur-nav: blur(10px);
 
     /* Radius */
     --radius-sm: 8px;
@@ -56,36 +65,47 @@
     --font-body: 'Inter', sans-serif;
 
     /* Transitions */
-    --transition-fast: 150ms ease;
-    --transition-base: 250ms ease;
-    --transition-slow: 400ms ease;
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 
     /* Status colors */
     --color-success: #10b981;
     --color-warning: #f59e0b;
     --color-error: #ef4444;
     --color-info: #3b82f6;
+
+    /* Skeleton shimmer */
+    --skeleton-base: #e8e8f4;
+    --skeleton-shine: #f5f5ff;
 }
 
-/* Dark mode */
+/* Dark mode (default visual identity per design brief) */
 [data-theme='dark'] {
-    --bg-base: #0a0a14;
+    --bg-base: #07070f;
     --bg-card: #12121f;
     --bg-card-hover: #1a1a2e;
     --bg-subtle: #16162a;
-    --bg-glass: rgba(18, 18, 31, 0.8);
+    --bg-glass: rgba(18, 18, 31, 0.68);
+    --bg-glass-strong: rgba(18, 18, 31, 0.88);
 
-    --text-primary: #f0f0ff;
-    --text-secondary: #a0a0c0;
-    --text-muted: #5a5a80;
+    --text-primary: #f4f4ff;
+    --text-secondary: #a3a3c2;
+    --text-muted: #5e5e82;
 
-    --border: #2a2a44;
-    --border-focus: #6366f1;
+    --border: #26263e;
+    --border-glow: rgba(129, 140, 248, 0.4);
+    --border-focus: #818cf8;
 
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.5);
     --shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.6);
-    --shadow-glow: 0 0 30px rgba(99, 102, 241, 0.3);
+    --shadow-glow: 0 0 30px rgba(129, 140, 248, 0.35);
+    --shadow-card-rest: 0 1px 2px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.03);
+    --shadow-card-hover: 0 20px 45px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(129, 140, 248, 0.25), 0 0 24px rgba(129, 140, 248, 0.12);
+
+    --skeleton-base: #1a1a2e;
+    --skeleton-shine: #232340;
 }
 
 /* ============================================================
@@ -110,6 +130,10 @@ html {
 body {
     font-family: var(--font-body);
     background-color: var(--bg-base);
+    background-image:
+        radial-gradient(ellipse 600px 400px at 15% -10%, rgba(99, 102, 241, 0.10), transparent),
+        radial-gradient(ellipse 500px 400px at 90% 10%, rgba(6, 182, 212, 0.08), transparent);
+    background-attachment: fixed;
     color: var(--text-primary);
     line-height: 1.6;
     transition: background-color var(--transition-slow), color var(--transition-slow);
@@ -140,6 +164,16 @@ button {
     outline: none;
 }
 
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+    outline: 2px solid var(--border-focus);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
 input,
 textarea,
 select {
@@ -149,6 +183,17 @@ select {
 
 ul {
     list-style: none;
+}
+
+/* ============================================================
+   Glass surface utility — used sparingly (navbar, tool panel only)
+   ============================================================ */
+
+.glass-surface {
+    background: var(--bg-glass);
+    backdrop-filter: var(--blur-panel) saturate(160%);
+    -webkit-backdrop-filter: var(--blur-panel) saturate(160%);
+    border: 1px solid var(--border);
 }
 
 /* ============================================================
@@ -193,8 +238,14 @@ ul {
     white-space: nowrap;
 }
 
+@media (max-width: 768px) {
+    .container {
+        padding: 0 var(--space-4);
+    }
+}
+
 /* ============================================================
-   Reduced Motion
+   Reduced Motion — disables blur too (GPU cost on low-power devices)
    ============================================================ */
 
 @media (prefers-reduced-motion: reduce) {
@@ -204,5 +255,10 @@ ul {
     *::after {
         animation-duration: 0.01ms !important;
         transition-duration: 0.01ms !important;
+    }
+
+    .glass-surface {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
     }
 }

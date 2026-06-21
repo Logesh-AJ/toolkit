@@ -16,12 +16,14 @@ import TrimVideoPage from './pages/TrimVideoPage.jsx'
 import ConvertAudioPage from './pages/ConvertAudioPage.jsx'
 import QrGeneratorPage from './pages/QrGeneratorPage.jsx'
 import ZipFilesPage from './pages/ZipFilesPage.jsx'
+import ReorderPdfPage from './pages/ReorderPdfPage.jsx'
 
 function useTheme() {
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('toolforge-theme')
     if (saved) return saved
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+    // Dark-first default per design brief; OS light-mode users can still toggle freely
+    return 'dark'
   })
 
   useEffect(() => {
@@ -48,6 +50,7 @@ export default function App() {
       <Route path="/tool/sign-pdf" element={<SignPdfPage {...themeProps} />} />
       <Route path="/tool/fill-pdf" element={<FillPdfPage {...themeProps} />} />
       <Route path="/tool/ocr-pdf" element={<OcrPdfPage {...themeProps} />} />
+      <Route path="/tool/reorder-pdf" element={<ReorderPdfPage {...themeProps} />} />
 
       {/* Image tools needing custom UI */}
       <Route path="/tool/compress-image" element={<CompressImagePage {...themeProps} />} />
@@ -64,7 +67,7 @@ export default function App() {
       <Route path="/tool/qr-generator" element={<QrGeneratorPage {...themeProps} />} />
       <Route path="/tool/zip-files" element={<ZipFilesPage {...themeProps} />} />
 
-      {/* Generic layout for every other tool (extract-audio, remove-background, scan-to-pdf, merge/split/compress-pdf, pdf-to-jpg, images-to-pdf) */}
+      {/* Generic layout for every other tool */}
       <Route path="/tool/:slug" element={<ToolPage {...themeProps} />} />
     </Routes>
   )

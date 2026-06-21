@@ -23,6 +23,7 @@
     text-transform: uppercase;
     color: var(--brand-primary);
     background: rgba(99, 102, 241, 0.1);
+    border: 1px solid rgba(99, 102, 241, 0.18);
     padding: 6px 14px;
     border-radius: 999px;
     margin-bottom: var(--space-6);
@@ -108,9 +109,29 @@
     z-index: 1;
 }
 
+.glowSecondary {
+    position: absolute;
+    bottom: -180px;
+    right: -120px;
+    width: 500px;
+    height: 400px;
+    background: radial-gradient(ellipse at center, rgba(6, 182, 212, 0.12) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
 @media (max-width: 600px) {
     .ctaRow {
         flex-direction: column;
         gap: var(--space-3);
+    }
+
+    .glow {
+        width: 500px;
+        height: 400px;
+    }
+
+    .glowSecondary {
+        display: none;
     }
 }
