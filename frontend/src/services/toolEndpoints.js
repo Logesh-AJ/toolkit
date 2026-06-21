@@ -1,6 +1,5 @@
 // Maps each tool slug to its backend endpoint and request config.
-// PDF group (merge, split, compress, pdf-to-jpg, images-to-pdf) is now live as of Phase 4.
-// Remaining tools are wired progressively in later phases.
+// All 25 tools are now wired as of Phase 8.
 
 export const TOOL_ENDPOINTS = {
   'pdf-to-word': { endpoint: '/api/pdf/to-word', multiple: false },

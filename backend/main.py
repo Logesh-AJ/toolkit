@@ -15,7 +15,7 @@ from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from routers import pdf
+from routers import pdf, image, video, audio, qr, archive
 
 # ---------------------------------------------------------------------------
 # Directory Setup
@@ -36,22 +36,30 @@ FILE_EXPIRY_MINUTES = int(os.getenv("FILE_EXPIRY_MINUTES", "30"))
 
 
 async def cleanup_old_files():
-    """Delete files older than FILE_EXPIRY_MINUTES from uploads and outputs."""
+    """
+    Delete files older than FILE_EXPIRY_MINUTES from uploads and outputs.
+    Also recursively removes any leftover extraction subdirectories
+    (the /unzip endpoint normally cleans its own via BackgroundTasks,
+    but this sweep catches anything orphaned by a server restart mid-request).
+    """
     while True:
         now = datetime.utcnow()
         cutoff = now - timedelta(minutes=FILE_EXPIRY_MINUTES)
 
         for directory in [UPLOAD_DIR, OUTPUT_DIR]:
-            for file_path in directory.iterdir():
-                if file_path.is_file():
-                    modified = datetime.utcfromtimestamp(file_path.stat().st_mtime)
+            for entry in directory.iterdir():
+                try:
+                    modified = datetime.utcfromtimestamp(entry.stat().st_mtime)
                     if modified < cutoff:
-                        try:
-                            file_path.unlink()
-                        except Exception:
-                            pass
+                        if entry.is_file():
+                            entry.unlink()
+                        elif entry.is_dir():
+                            import shutil
+                            shutil.rmtree(entry, ignore_errors=True)
+                except Exception:
+                    pass
 
-        await asyncio.sleep(300)  # Run every 5 minutes
+        await asyncio.sleep(300)
 
 
 @asynccontextmanager
@@ -85,7 +93,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "http://192.168.56.1:5173",
+        "http://172.21.48.1:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -99,18 +107,15 @@ app.add_middleware(
 app.mount("/outputs", StaticFiles(directory=str(OUTPUT_DIR)), name="outputs")
 
 # ---------------------------------------------------------------------------
-# Routers
+# Routers — all 25 tools are now mounted
 # ---------------------------------------------------------------------------
 
 app.include_router(pdf.router, prefix="/api/pdf", tags=["PDF Tools"])
-
-# Remaining routers are added as their phases are implemented:
-# from routers import image, video, audio, qr, archive
-# app.include_router(image.router, prefix="/api/image", tags=["Image Tools"])
-# app.include_router(video.router, prefix="/api/video", tags=["Video Tools"])
-# app.include_router(audio.router, prefix="/api/audio", tags=["Audio Tools"])
-# app.include_router(qr.router, prefix="/api/qr", tags=["QR Code"])
-# app.include_router(archive.router, prefix="/api/archive", tags=["Archive Tools"])
+app.include_router(image.router, prefix="/api/image", tags=["Image Tools"])
+app.include_router(video.router, prefix="/api/video", tags=["Video Tools"])
+app.include_router(audio.router, prefix="/api/audio", tags=["Audio Tools"])
+app.include_router(qr.router, prefix="/api/qr", tags=["QR Code"])
+app.include_router(archive.router, prefix="/api/archive", tags=["Archive Tools"])
 
 # ---------------------------------------------------------------------------
 # Health & Root Endpoints

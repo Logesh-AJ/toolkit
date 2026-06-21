@@ -1,12 +1,14 @@
 """
-PDF tool endpoints: merge, split, compress, pdf-to-jpg, images-to-pdf.
+PDF tool endpoints: merge, split, compress, pdf-to-jpg, images-to-pdf,
+pdf-to-word, word-to-pdf, ocr, sign, fill forms, protect, unlock.
 """
 
+import json
 import zipfile
 from pathlib import Path
 from typing import List
 
-from fastapi import APIRouter, UploadFile, File, BackgroundTasks, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, BackgroundTasks, HTTPException
 
 from utils.file_helpers import (
     save_upload_file,
@@ -14,8 +16,12 @@ from utils.file_helpers import (
     human_readable_size,
 )
 from utils.cleanup import remove_files_silently
-from utils.schemas import ProcessedFileResponse
-from services import pdf_service
+from utils.schemas import (
+    ProcessedFileResponse,
+    TextExtractionResponse,
+    FormFieldsResponse,
+)
+from services import pdf_service, pdf_advanced_service
 
 router = APIRouter()
 
@@ -25,6 +31,8 @@ OUTPUT_DIR = BASE_DIR / "outputs"
 
 PDF_EXTENSIONS = [".pdf"]
 IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png"]
+WORD_EXTENSIONS = [".doc", ".docx"]
+SIGNATURE_EXTENSIONS = [".png", ".jpg", ".jpeg"]
 
 
 def _build_download_response(output_path: Path, message: str) -> ProcessedFileResponse:
@@ -39,7 +47,6 @@ def _build_download_response(output_path: Path, message: str) -> ProcessedFileRe
 
 
 def _zip_outputs(paths: List[Path], zip_name: str) -> Path:
-    """Bundle multiple output files into a single downloadable ZIP."""
     zip_path = OUTPUT_DIR / zip_name
     with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
         for p in paths:
@@ -219,3 +226,261 @@ async def images_to_pdf_endpoint(
     except Exception as e:
         remove_files_silently(saved_paths)
         raise HTTPException(status_code=500, detail=f"Failed to create PDF: {str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# PDF to Word  (FIXED: now uses pdf2docx instead of LibreOffice)
+# ---------------------------------------------------------------------------
+
+@router.post("/to-word", response_model=ProcessedFileResponse)
+async def pdf_to_word_endpoint(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+):
+    validate_extension(file.filename, PDF_EXTENSIONS)
+    saved_path = await save_upload_file(file, UPLOAD_DIR)
+
+    try:
+        output_path = OUTPUT_DIR / f"{saved_path.stem}.docx"
+        pdf_advanced_service.convert_pdf_to_word(saved_path, output_path)
+
+        background_tasks.add_task(remove_files_silently, [saved_path])
+
+        return _build_download_response(output_path, "Converted PDF to an editable Word document")
+    except HTTPException:
+        remove_files_silently([saved_path])
+        raise
+    except Exception as e:
+        remove_files_silently([saved_path])
+        raise HTTPException(status_code=500, detail=f"Failed to convert PDF to Word: {str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Word to PDF  (unchanged — LibreOffice handles this direction reliably)
+# ---------------------------------------------------------------------------
+
+@router.post("/from-word", response_model=ProcessedFileResponse)
+async def word_to_pdf_endpoint(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+):
+    validate_extension(file.filename, WORD_EXTENSIONS)
+    saved_path = await save_upload_file(file, UPLOAD_DIR)
+
+    try:
+        converted_path = pdf_advanced_service.convert_with_libreoffice(
+            saved_path, OUTPUT_DIR, "pdf"
+        )
+
+        background_tasks.add_task(remove_files_silently, [saved_path])
+
+        return _build_download_response(converted_path, "Converted Word document to PDF")
+    except HTTPException:
+        remove_files_silently([saved_path])
+        raise
+    except Exception as e:
+        remove_files_silently([saved_path])
+        raise HTTPException(status_code=500, detail=f"Failed to convert Word to PDF: {str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# OCR
+# ---------------------------------------------------------------------------
+
+@router.post("/ocr", response_model=TextExtractionResponse)
+async def ocr_endpoint(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+):
+    validate_extension(file.filename, PDF_EXTENSIONS + IMAGE_EXTENSIONS)
+    saved_path = await save_upload_file(file, UPLOAD_DIR)
+
+    try:
+        ext = saved_path.suffix.lower()
+        if ext == ".pdf":
+            result = pdf_advanced_service.ocr_pdf(saved_path)
+            text, page_count = result["text"], result["page_count"]
+        else:
+            text = pdf_advanced_service.ocr_image(saved_path)
+            page_count = 1
+
+        background_tasks.add_task(remove_files_silently, [saved_path])
+
+        if not text.strip():
+            return TextExtractionResponse(
+                message="No text could be detected in this file",
+                text="",
+                page_count=page_count,
+            )
+
+        return TextExtractionResponse(
+            message=f"Extracted text from {page_count} page(s)",
+            text=text,
+            page_count=page_count,
+        )
+    except HTTPException:
+        remove_files_silently([saved_path])
+        raise
+    except Exception as e:
+        remove_files_silently([saved_path])
+        raise HTTPException(status_code=500, detail=f"OCR failed: {str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Sign PDF
+# ---------------------------------------------------------------------------
+
+@router.post("/sign", response_model=ProcessedFileResponse)
+async def sign_pdf_endpoint(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    signature: UploadFile = File(...),
+    page_number: int = Form(1),
+    x: float = Form(50),
+    y: float = Form(50),
+    width: float = Form(150),
+    height: float = Form(60),
+):
+    validate_extension(file.filename, PDF_EXTENSIONS)
+    validate_extension(signature.filename, SIGNATURE_EXTENSIONS)
+
+    saved_path = await save_upload_file(file, UPLOAD_DIR)
+    signature_path = await save_upload_file(signature, UPLOAD_DIR)
+
+    try:
+        output_path = OUTPUT_DIR / f"signed_{saved_path.name}"
+        pdf_advanced_service.sign_pdf(
+            saved_path, signature_path, output_path,
+            page_number=page_number, x=x, y=y, width=width, height=height,
+        )
+
+        background_tasks.add_task(remove_files_silently, [saved_path, signature_path])
+
+        return _build_download_response(output_path, "Signature added to PDF")
+    except ValueError as e:
+        remove_files_silently([saved_path, signature_path])
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        remove_files_silently([saved_path, signature_path])
+        raise
+    except Exception as e:
+        remove_files_silently([saved_path, signature_path])
+        raise HTTPException(status_code=500, detail=f"Failed to sign PDF: {str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Fill PDF Forms — Step 1: inspect fields
+# ---------------------------------------------------------------------------
+
+@router.post("/fill/inspect", response_model=FormFieldsResponse)
+async def inspect_form_fields_endpoint(file: UploadFile = File(...)):
+    validate_extension(file.filename, PDF_EXTENSIONS)
+    saved_path = await save_upload_file(file, UPLOAD_DIR)
+
+    try:
+        fields = pdf_advanced_service.get_form_fields(saved_path)
+        return FormFieldsResponse(
+            has_fields=len(fields) > 0,
+            fields=fields,
+            upload_token=saved_path.name,
+        )
+    except Exception as e:
+        remove_files_silently([saved_path])
+        raise HTTPException(status_code=500, detail=f"Failed to inspect PDF form: {str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Fill PDF Forms — Step 2: submit values
+# ---------------------------------------------------------------------------
+
+@router.post("/fill", response_model=ProcessedFileResponse)
+async def fill_form_endpoint(
+    background_tasks: BackgroundTasks,
+    upload_token: str = Form(...),
+    field_values: str = Form(...),
+):
+    saved_path = UPLOAD_DIR / upload_token
+
+    if not saved_path.exists() or saved_path.parent != UPLOAD_DIR:
+        raise HTTPException(status_code=400, detail="Upload session expired, please re-upload the PDF")
+
+    try:
+        try:
+            values = json.loads(field_values)
+        except json.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="field_values must be valid JSON")
+
+        output_path = OUTPUT_DIR / f"filled_{saved_path.name}"
+        pdf_advanced_service.fill_form(saved_path, output_path, values)
+
+        background_tasks.add_task(remove_files_silently, [saved_path])
+
+        return _build_download_response(output_path, "Form filled successfully")
+    except HTTPException:
+        remove_files_silently([saved_path])
+        raise
+    except Exception as e:
+        remove_files_silently([saved_path])
+        raise HTTPException(status_code=500, detail=f"Failed to fill form: {str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Password Protect PDF
+# ---------------------------------------------------------------------------
+
+@router.post("/protect", response_model=ProcessedFileResponse)
+async def protect_pdf_endpoint(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    password: str = Form(...),
+):
+    validate_extension(file.filename, PDF_EXTENSIONS)
+    if len(password) < 4:
+        raise HTTPException(status_code=400, detail="Password must be at least 4 characters")
+
+    saved_path = await save_upload_file(file, UPLOAD_DIR)
+
+    try:
+        output_path = OUTPUT_DIR / f"protected_{saved_path.name}"
+        pdf_advanced_service.protect_pdf(saved_path, output_path, password)
+
+        background_tasks.add_task(remove_files_silently, [saved_path])
+
+        return _build_download_response(output_path, "PDF is now password protected")
+    except HTTPException:
+        remove_files_silently([saved_path])
+        raise
+    except Exception as e:
+        remove_files_silently([saved_path])
+        raise HTTPException(status_code=500, detail=f"Failed to protect PDF: {str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Unlock PDF
+# ---------------------------------------------------------------------------
+
+@router.post("/unlock", response_model=ProcessedFileResponse)
+async def unlock_pdf_endpoint(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    password: str = Form(...),
+):
+    validate_extension(file.filename, PDF_EXTENSIONS)
+    saved_path = await save_upload_file(file, UPLOAD_DIR)
+
+    try:
+        output_path = OUTPUT_DIR / f"unlocked_{saved_path.name}"
+        pdf_advanced_service.unlock_pdf(saved_path, output_path, password)
+
+        background_tasks.add_task(remove_files_silently, [saved_path])
+
+        return _build_download_response(output_path, "Password removed from PDF")
+    except ValueError as e:
+        remove_files_silently([saved_path])
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        remove_files_silently([saved_path])
+        raise
+    except Exception as e:
+        remove_files_silently([saved_path])
+        raise HTTPException(status_code=500, detail=f"Failed to unlock PDF: {str(e)}")

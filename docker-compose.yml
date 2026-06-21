@@ -16,6 +16,12 @@ services:
       - OUTPUT_DIR=outputs
       - MAX_FILE_SIZE_MB=100
       - FILE_EXPIRY_MINUTES=30
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
     restart: unless-stopped
 
   frontend:
@@ -28,7 +34,8 @@ services:
       - ./frontend:/app
     command: sh -c "npm install && npm run dev -- --host"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     environment:
       - VITE_API_URL=http://localhost:8000
     restart: unless-stopped

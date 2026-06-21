@@ -36,3 +36,31 @@ class TextExtractionResponse(BaseModel):
     message: str
     text: str
     page_count: Optional[int] = None
+
+
+class FormField(BaseModel):
+    field_id: str
+    type: str
+    value: str = ""
+    options: Optional[List[str]] = None
+
+
+class FormFieldsResponse(BaseModel):
+    """Response listing the fillable fields detected in a PDF."""
+    success: bool = True
+    has_fields: bool
+    fields: List[FormField] = []
+    upload_token: Optional[str] = None
+
+
+class ImageDimensionsResponse(ProcessedFileResponse):
+    """Extends the standard file response with final width/height (resize/crop)."""
+    width: int
+    height: int
+
+
+class MediaInfoResponse(BaseModel):
+    """Response for video/audio duration probing (used by the Trim tool)."""
+    success: bool = True
+    duration_seconds: float
+    upload_token: str

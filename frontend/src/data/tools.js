@@ -6,7 +6,6 @@ import {
 } from 'react-icons/fi'
 import { BsQrCode } from 'react-icons/bs'
 
-// Each tool maps to a route slug used for /tool/:slug
 export const TOOL_CATEGORIES = [
   { id: 'pdf', label: 'PDF Tools' },
   { id: 'image', label: 'Image Tools' },
@@ -46,7 +45,7 @@ export const TOOLS = [
 
   // ---------------- Utility ----------------
   { slug: 'qr-generator', name: 'QR Code Generator', desc: 'Create a scannable QR code instantly.', icon: BsQrCode, category: 'utility', formats: ['text/url'], popular: true },
-  { slug: 'zip-files', name: 'ZIP / Unzip Files', desc: 'Compress files or extract an archive.', icon: FiPackage, category: 'utility', formats: ['.zip', '.rar', 'any'] },
+  { slug: 'zip-files', name: 'Zip / Unzip Files', desc: 'Compress files into a ZIP, or extract a ZIP/RAR archive.', icon: FiPackage, category: 'utility', formats: ['any', '.zip', '.rar'] },
 ]
 
 export const getToolBySlug = (slug) => TOOLS.find(t => t.slug === slug)

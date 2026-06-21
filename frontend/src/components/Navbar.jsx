@@ -13,7 +13,7 @@ export default function Navbar({ theme, toggleTheme }) {
           </span>
           <span className={styles.logoText}>ToolForge</span>
         </Link>
-
+        
         <nav className={styles.links}>
           <a href="#tools" className={styles.link}>Tools</a>
           <a href="#how-it-works" className={styles.link}>How it works</a>
