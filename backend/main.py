@@ -1,9 +1,11 @@
 """
 ToolForge Backend — FastAPI Application Entry Point
+All 25 tools across 6 routers (pdf, image, video, audio, qr, archive) are live.
 """
 
 import os
 import asyncio
+import shutil
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -37,10 +39,9 @@ FILE_EXPIRY_MINUTES = int(os.getenv("FILE_EXPIRY_MINUTES", "30"))
 
 async def cleanup_old_files():
     """
-    Delete files older than FILE_EXPIRY_MINUTES from uploads and outputs.
-    Also recursively removes any leftover extraction subdirectories
-    (the /unzip endpoint normally cleans its own via BackgroundTasks,
-    but this sweep catches anything orphaned by a server restart mid-request).
+    Delete files/directories older than FILE_EXPIRY_MINUTES from uploads
+    and outputs. Handles both flat files and the extraction subdirectories
+    created by the archive /unzip endpoint.
     """
     while True:
         now = datetime.utcnow()
@@ -54,7 +55,6 @@ async def cleanup_old_files():
                         if entry.is_file():
                             entry.unlink()
                         elif entry.is_dir():
-                            import shutil
                             shutil.rmtree(entry, ignore_errors=True)
                 except Exception:
                     pass
@@ -107,7 +107,7 @@ app.add_middleware(
 app.mount("/outputs", StaticFiles(directory=str(OUTPUT_DIR)), name="outputs")
 
 # ---------------------------------------------------------------------------
-# Routers — all 25 tools are now mounted
+# Routers — all 25 tools
 # ---------------------------------------------------------------------------
 
 app.include_router(pdf.router, prefix="/api/pdf", tags=["PDF Tools"])

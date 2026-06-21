@@ -1,6 +1,7 @@
 """
 PDF tool endpoints: merge, split, compress, pdf-to-jpg, images-to-pdf,
-pdf-to-word, word-to-pdf, ocr, sign, fill forms, protect, unlock.
+pdf-to-word, word-to-pdf, ocr, sign, fill forms, protect, unlock,
+page-count, reorder/delete pages.
 """
 
 import json
@@ -20,6 +21,7 @@ from utils.schemas import (
     ProcessedFileResponse,
     TextExtractionResponse,
     FormFieldsResponse,
+    PageCountResponse,
 )
 from services import pdf_service, pdf_advanced_service
 
@@ -229,7 +231,7 @@ async def images_to_pdf_endpoint(
 
 
 # ---------------------------------------------------------------------------
-# PDF to Word  (FIXED: now uses pdf2docx instead of LibreOffice)
+# PDF to Word
 # ---------------------------------------------------------------------------
 
 @router.post("/to-word", response_model=ProcessedFileResponse)
@@ -256,7 +258,7 @@ async def pdf_to_word_endpoint(
 
 
 # ---------------------------------------------------------------------------
-# Word to PDF  (unchanged — LibreOffice handles this direction reliably)
+# Word to PDF
 # ---------------------------------------------------------------------------
 
 @router.post("/from-word", response_model=ProcessedFileResponse)
@@ -484,3 +486,61 @@ async def unlock_pdf_endpoint(
     except Exception as e:
         remove_files_silently([saved_path])
         raise HTTPException(status_code=500, detail=f"Failed to unlock PDF: {str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Page Count (used to render the Reorder/Delete page picker)
+# ---------------------------------------------------------------------------
+
+@router.post("/page-count", response_model=PageCountResponse)
+async def page_count_endpoint(file: UploadFile = File(...)):
+    validate_extension(file.filename, PDF_EXTENSIONS)
+    saved_path = await save_upload_file(file, UPLOAD_DIR)
+
+    try:
+        count = pdf_service.get_page_count(saved_path)
+        # Keep the file around — /reorder will reference it by upload_token
+        return PageCountResponse(page_count=count, upload_token=saved_path.name)
+    except Exception as e:
+        remove_files_silently([saved_path])
+        raise HTTPException(status_code=500, detail=f"Failed to read PDF: {str(e)}")
+
+
+# ---------------------------------------------------------------------------
+# Reorder / Delete Pages
+# ---------------------------------------------------------------------------
+
+@router.post("/reorder", response_model=ProcessedFileResponse)
+async def reorder_pdf_endpoint(
+    background_tasks: BackgroundTasks,
+    upload_token: str = Form(...),
+    page_order: str = Form(...),  # JSON array string, e.g. "[3,1,2]"
+):
+    saved_path = UPLOAD_DIR / upload_token
+
+    if not saved_path.exists() or saved_path.parent != UPLOAD_DIR:
+        raise HTTPException(status_code=400, detail="Upload session expired, please re-upload the PDF")
+
+    try:
+        try:
+            order = json.loads(page_order)
+            if not isinstance(order, list) or not all(isinstance(n, int) for n in order):
+                raise ValueError
+        except (json.JSONDecodeError, ValueError):
+            raise HTTPException(status_code=400, detail="page_order must be a JSON array of integers")
+
+        output_path = OUTPUT_DIR / f"reordered_{saved_path.name}"
+        final_count = pdf_service.reorder_pdf(saved_path, output_path, order)
+
+        background_tasks.add_task(remove_files_silently, [saved_path])
+
+        return _build_download_response(output_path, f"Saved a {final_count}-page PDF")
+    except ValueError as e:
+        remove_files_silently([saved_path])
+        raise HTTPException(status_code=400, detail=str(e))
+    except HTTPException:
+        remove_files_silently([saved_path])
+        raise
+    except Exception as e:
+        remove_files_silently([saved_path])
+        raise HTTPException(status_code=500, detail=f"Failed to reorder PDF: {str(e)}")

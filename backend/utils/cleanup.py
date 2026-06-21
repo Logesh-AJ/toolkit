@@ -4,11 +4,11 @@ completes) via FastAPI BackgroundTasks, in addition to the periodic
 sweep already running in main.py's lifespan.
 """
 
-import os
 from pathlib import Path
+from typing import Union
 
 
-def remove_file_silently(path: str | Path) -> None:
+def remove_file_silently(path: Union[str, Path]) -> None:
     """Delete a file if it exists; never raises."""
     try:
         p = Path(path)
@@ -18,6 +18,6 @@ def remove_file_silently(path: str | Path) -> None:
         pass
 
 
-def remove_files_silently(paths: list[str | Path]) -> None:
+def remove_files_silently(paths: list) -> None:
     for p in paths:
         remove_file_silently(p)

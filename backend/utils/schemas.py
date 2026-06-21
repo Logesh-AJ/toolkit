@@ -64,3 +64,10 @@ class MediaInfoResponse(BaseModel):
     success: bool = True
     duration_seconds: float
     upload_token: str
+
+
+class PageCountResponse(BaseModel):
+    """Response for PDF page-count inspection (used by the Reorder/Delete tool)."""
+    success: bool = True
+    page_count: int
+    upload_token: str

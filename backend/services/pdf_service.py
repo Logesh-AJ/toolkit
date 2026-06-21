@@ -61,9 +61,8 @@ def compress_pdf(input_path: Path, output_path: Path, image_quality: int = 60) -
                 base_image = doc.extract_image(xref)
                 image_bytes = base_image["image"]
 
-                # Re-encode the image at a lower quality using PyMuPDF's Pixmap
                 pix = fitz.Pixmap(image_bytes)
-                if pix.n - pix.alpha >= 4:  # CMYK -> RGB safety
+                if pix.n - pix.alpha >= 4:
                     pix = fitz.Pixmap(fitz.csRGB, pix)
 
                 new_bytes = pix.tobytes("jpeg", jpg_quality=image_quality)
@@ -71,10 +70,8 @@ def compress_pdf(input_path: Path, output_path: Path, image_quality: int = 60) -
                 doc.update_stream(xref, new_bytes)
                 pix = None
             except Exception:
-                # If an individual image can't be re-encoded, skip it gracefully
                 continue
 
-    # garbage=4 removes unused objects, deflate=True compresses streams
     doc.save(str(output_path), garbage=4, deflate=True, clean=True)
     doc.close()
 
@@ -95,7 +92,7 @@ def pdf_to_jpg(input_path: Path, output_dir: Path, base_name: str, dpi: int = 15
     doc = fitz.open(str(input_path))
     output_paths = []
 
-    zoom = dpi / 72  # PDF base resolution is 72 DPI
+    zoom = dpi / 72
     matrix = fitz.Matrix(zoom, zoom)
 
     for i, page in enumerate(doc):
@@ -113,11 +110,10 @@ def images_to_pdf(input_paths: List[Path], output_path: Path) -> int:
     Combine one or more images into a single PDF (one image per page).
     Returns page count.
     """
-    doc = fitz.open()  # new empty PDF
+    doc = fitz.open()
 
     for img_path in input_paths:
-        img_doc = fitz.open(str(img_path))  # PyMuPDF can open raster images directly
-        rect = img_doc[0].rect
+        img_doc = fitz.open(str(img_path))
         pdf_bytes = img_doc.convert_to_pdf()
         img_pdf = fitz.open("pdf", pdf_bytes)
         doc.insert_pdf(img_pdf)
@@ -129,3 +125,38 @@ def images_to_pdf(input_paths: List[Path], output_path: Path) -> int:
     doc.close()
 
     return page_count
+
+
+def get_page_count(input_path: Path) -> int:
+    """Return the number of pages in a PDF (used by Reorder/Delete to render a UI list)."""
+    reader = PdfReader(str(input_path))
+    return len(reader.pages)
+
+
+def reorder_pdf(input_path: Path, output_path: Path, page_order: List[int]) -> int:
+    """
+    Rebuild a PDF using only the given 1-indexed page numbers, in the given order.
+    Pages omitted from page_order are deleted; pages can also be repeated or
+    reordered freely. Returns the final page count.
+
+    Example: page_order=[3, 1, 1] on a 5-page PDF keeps page 3, then page 1 twice,
+    dropping pages 2, 4, 5 — this is exactly "reorder + delete" in one operation.
+    """
+    reader = PdfReader(str(input_path))
+    total_pages = len(reader.pages)
+
+    if not page_order:
+        raise ValueError("page_order cannot be empty")
+
+    for page_num in page_order:
+        if page_num < 1 or page_num > total_pages:
+            raise ValueError(f"Page {page_num} does not exist (PDF has {total_pages} pages)")
+
+    writer = PdfWriter()
+    for page_num in page_order:
+        writer.add_page(reader.pages[page_num - 1])
+
+    with open(output_path, "wb") as f:
+        writer.write(f)
+
+    return len(writer.pages)
